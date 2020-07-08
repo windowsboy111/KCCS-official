@@ -1,4 +1,5 @@
 import discord
+import base64
 from discord.ext import commands
 
 
@@ -37,7 +38,10 @@ class QuickPoll:
                 msg = await ctx.send('And more reactions...')
             await msg.add_reaction(reaction)
             i+=1
-        text = 'Poll ID: {}'.format(msg.id)
+        id = str(msg.id)
+        id = base64.b64encode(id.encode("utf-8"))
+	    id = str(id, "utf-8")
+        text = 'Poll ID: {}'.format(msg.id, id)
         if i > 10:
             text = "Can't tally this poll :("
         embed.set_footer(text=text)
