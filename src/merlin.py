@@ -3,6 +3,7 @@ import os
 import sys
 import copy
 import json
+import types
 import random
 import asyncio
 import warnings
@@ -11,32 +12,45 @@ import contextlib
 from functools import wraps
 # additional libs
 import discord
-from discord.ext import commands
-from discord.utils import find
-from discord.ext import tasks
 import aiosqlite
+from discord.ext import tasks
+from discord.ext import commands
 # python external files
-from ext.const import STATUSES, eventLogger, style, Log, get_prefix, BOTSETFILE, LASTWRDFILE, SETFILE, WARNFILE, STRFILE, TAGFILE, RANKFILE
-from ext.logcfg import gLogr
 from ext import excepts
-exts = ['ext.tasks', 'ext.cmdhdl', 'ext.errhdl', 'ext.console']
+from ext.logcfg import gLogr
+from ext.const import STATUSES, style, Log, BOTSETFILE, LASTWRDFILE, SETFILE, WARNFILE, STRFILE, TAGFILE, RANKFILE, get_prefix
+__all__ = ["Bot"]
+exts = ['ext.tasks', 'ext.cmdhdl', 'ext.errhdl', 'ext.console', 'modules.chat.chat']
 root_logger = gLogr('Merlin.root')
-get_exc = lambda err: "".join(traceback.format_exception(err.__class__, err, sys.exc_info()[2]))
+
+
+def get_exc(err):
+    return "".join(traceback.format_exception(err.__class__, err, sys.exc_info()[2]))
+
+
 # scan the cogs folder
 for cog in os.listdir('cogs/'):
     if cog.endswith('.py'):
         exts.append("cogs." + cog[:-3])
-commands.Bot.get_context
-__all__ = ["Bot"]
+
+
+class Tools:
+    get = discord.utils.get
+    find = discord.utils.find
+    MethType = types.MethodType
+    get_exc = get_exc
+
 
 class Context(commands.Context):
     def __init__(self, **attrs):
         super().__init__(**attrs)
+        self.errors = excepts
+        self.tools = Tools
 
 
 class BotMeta(type):
-    def __new__(cls, name, bases, dict, **kwargs):
-        bot = super().__new__(cls, name, bases, dict)
+    def __new__(cls, name, bases, dict_, **kwargs):
+        bot = super().__new__(cls, name, bases, dict_)
         bot.__inline_commands__ = []
 
         for name in dir(bot):
@@ -54,17 +68,19 @@ class BotMeta(type):
 
     def wrapper(self, value):
         callback = copy.copy(value.callback)
+
         @wraps(value.callback)
         def custom_callback(*args, **kwargs):
             return callback(self, *args, **kwargs)
-        
         return custom_callback
+
 
 class BotMixin(commands.Bot, metaclass=BotMeta):
     initialize = True
     MODE = os.getenv('MODE')
     FILES = {BOTSETFILE: "botsets", LASTWRDFILE: "lastwrds", SETFILE: "sets", WARNFILE: "warns", STRFILE: "strs", TAGFILE: "tags", RANKFILE: "ranks"}
     db = {}
+
     def __init__(self):
         super().__init__(**self.__inline_kwargs__)
         self.remove_command('help')
@@ -84,7 +100,8 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             return
         if file.endswith(".json"):
             db_new = json.load(open(file, 'r'))
-            self.db[name].update(db_new)
+            db_new.update(self.db[name])
+            self.db[name] = db_new
             json.dump(self.db[name], open(file, 'w'))
         if file.endswith(".db"):
             await self.db[name].commit()
@@ -97,7 +114,6 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             name = self.FILES[file]
             to_do_coro.append(self.fsync(file, name))
         await asyncio.gather(*to_do_coro)
-
 
     @staticmethod
     def get_cmd_patch(name, cmd_list):
@@ -112,16 +128,16 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
                 continue
             cor_count = 0
             for i, c in enumerate(name):
-                valid=False  # not valid means end of loop or unmatch
+                valid = False  # not valid means end of loop or unmatch
                 try:
                     if c == cmd_name[i]:
                         cor_count += 1
-                        valid=True
+                        valid = True
                 except IndexError:
                     break  # search query longer than command name
                 # unmatch
-                if len(name) == i+1:  # end of loop
-                    valid=False
+                if len(name) == i + 1:  # end of loop
+                    valid = False
                 if (cor_count < char_cor or cor_count == 0) and not valid:
                     break  # smaller than the record bai
                 if cor_count == char_cor and cor_count != 0 and not valid:
@@ -141,17 +157,18 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             warnings.warn(f"Ambiguous command search '{name}' -- {', '.join(ambiguous)}", excepts.CmdSearchWarning)
             return None
         return last_gud_cmd
-    def get_command(self, name, last_gud=False):  # allow shorterned commands (SAP)
-        if ' ' not in name:
-            return self.get_cmd_patch(name, self.all_commands)
-        
-        names = name.split()
+
+    def get_command(self, name_s, last_gud=False):  # allow shorterned commands (SAP)
+        if ' ' not in name_s:
+            return self.get_cmd_patch(name_s, self.all_commands)
+
+        names = name_s.split()
         if not names:
             return None
         obj = self.get_cmd_patch(names[0], self.all_commands)
         if not isinstance(obj, commands.GroupMixin):
             return obj
-        
+
         for name in names[1:]:
             new = None
             try:
@@ -180,27 +197,12 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             if not view.skip_string(prefix):
                 return ctx
         else:
-            try:
-                # if the context class' __init__ consumes something from the view this
-                # will be wrong.  That seems unreasonable though.
-                if message.content.startswith(tuple(prefix)):
-                    invoked_prefix = discord.utils.find(view.skip_string, prefix)
-                else:
-                    return ctx
-
-            except TypeError:
-                if not isinstance(prefix, list):
-                    raise TypeError("get_prefix must return either a string or a list of string, "
-                                    "not {}".format(prefix.__class__.__name__))
-
-                # It's possible a bad command_prefix got us here.
-                for value in prefix:
-                    if not isinstance(value, str):
-                        raise TypeError("Iterable command_prefix or list returned from get_prefix must "
-                                        "contain only strings, not {}".format(value.__class__.__name__))
-
-                # Getting here shouldn't happen
-                raise
+            # if the context class' __init__ consumes something from the view this
+            # will be wrong.  That seems unreasonable though.
+            if message.content.startswith(tuple(prefix)):
+                invoked_prefix = discord.utils.find(view.skip_string, prefix)
+            else:
+                return ctx
 
         # invoker = self.get_command(view.get_word())
         # if invoker is not None:
@@ -220,7 +222,8 @@ class Bot(BotMixin, command_prefix=get_prefix, description="an awesome open sour
     subset of commands.Bot
     Commands included.
     """
-
+    netLogger: Log
+    chatting: None
     async def __aenter__(self):
         """Basically    `async with bot:`."""
         root_logger.info("Starting tasks")
@@ -237,7 +240,7 @@ class Bot(BotMixin, command_prefix=get_prefix, description="an awesome open sour
                     json.dump(self.db[name], open(file, 'w'))
                 if file.endswith(".db"):
                     asyncio.get_event_loop().create_task(self.db[name].close())
-        return sys.exit(0)
+        self.chatting.stopChatTh()
 
     async def on_ready(self):
         """Bot is (back) online."""
@@ -269,33 +272,35 @@ class Bot(BotMixin, command_prefix=get_prefix, description="an awesome open sour
 
     @commands.command(name='eval', help='it is eval', hidden=True)
     @commands.is_owner()
-    async def _eval(self, ctx: commands.Context, *, code='"bruh wat to eval"'):
-        try: await ctx.send(eval(code))
+    async def _eval(self, ctx, *, code='"bruh wat to eval"'):
+        try:
+            bot = ctx.bot
+            await ctx.send(eval(code))
+            await ctx.message.add_reaction('✅')
         except Exception:
-            await ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549))
-            await ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
-            return 'no-rm'
-        await ctx.message.add_reaction('✅')
-        return 'no-rm'
-    
+            await asyncio.gather(
+                ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549)),
+                ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
+            )
+
     @commands.command(name='exec', help='Execute python', hidden=True)
     @commands.is_owner()
-    async def _exec(self, ctx: commands.Context, *, code='return "???????"'):
+    async def _exec(self, ctx, *, code='return "???????"'):
         try:
+            bot = ctx.bot
             exec(code, globals(), locals())
+            await ctx.message.add_reaction("✅")
         except Exception:
-            await ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549))
-            await ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
-            return 'no-rm'
-        await ctx.message.add_reaction("✅")
-        return 'no-rm'
+            await asyncio.gather(
+                ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549)),
+                ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
+            )
 
     @commands.command(name='reload', help='reload a cog', hidden=True)
     @commands.is_owner()
     async def _reload(self, ctx, module: str):
         ctx.bot.reload_extension(module)
         await ctx.message.add_reaction("✅")
-
 
     @commands.command(name='unload', help='unload a cog', hidden=True)
     @commands.is_owner()

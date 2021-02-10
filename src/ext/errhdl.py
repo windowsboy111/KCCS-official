@@ -41,7 +41,7 @@ async def errhdl_g(self, ctx, error):
         ))
 
     if isinstance(error, excepts.NotMod):
-        await ctx.send(f"`{ctx.author} is not in the sudoers file.  This incident will be reported.`")
+        await ctx.send(error.msg or f"`{ctx.author} is not in the sudoers file.  This incident will be reported.`")
 
     if isinstance(error, commands.errors.CommandInvokeError):
         await ctx.send(embed=discord.Embed(
@@ -66,8 +66,6 @@ async def errhdl_g(self, ctx, error):
             ':grey_question: Whoops. The discord special expression you have specified when issuing that command is invalid.'
             ':mag: This error occurrs usually because of the bot fails to find the object.')
         return 4
-    if isinstance(error, excepts.NotMod):
-        return await ctx.send(str(error))
 
     # All other Errors not returned come here. And we can just print the default TraceBack.
     print(f"{style.red2}Ignoring exception in command {ctx.message.content}:\n{style.red}{merlin.get_exc(error)}{style.reset}", file=sys.stderr)

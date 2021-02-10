@@ -7,6 +7,7 @@ import time
 import multiprocessing as mp
 doTrain = False
 reTrain = False
+stop = False
 from chatterbot.conversation import Statement
 # more_label = None
 # more_data = None
@@ -100,17 +101,37 @@ def init_train(bot: ChatBot):
 
 
 def loop():
-    global doTrain, reTrain, bot
-    while True:
-        if doTrain:
-            doTrain = False
-            p = mp.Process(target=train, args=(bot, ), name='Merlin chat train')
-            p.start()
-        if reTrain:
-            reTrain = False
-            init_train(bot)
-        time.sleep(2)
-
+    global doTrain, reTrain, bot, stop
+    try:
+        while not stop:
+            if stop:
+                return
+            if doTrain:
+                doTrain = False
+                p = mp.Process(target=train, args=(bot, ), name='Merlin chat train')
+                p.start()
+            if reTrain:
+                reTrain = False
+                init_train(bot)
+            time.sleep(0.5)
+    except (KeyboardInterrupt, SystemExit):
+        return
 
 t = threading.Thread(target=loop)
-t.start()
+
+def stopChatTh():
+    global stop
+    print("CLOSING chat Th")
+    stop = True
+    t.join()
+
+class Chatting:
+    response = response
+    save = save
+    th = t
+    stopChatTh = stopChatTh
+
+def setup(bot):
+    bot.stopChatTh = stopChatTh
+    bot.chatting = Chatting
+    t.start()

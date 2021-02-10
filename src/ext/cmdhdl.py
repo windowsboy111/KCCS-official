@@ -6,12 +6,12 @@ Command processing, command invoking, error handling, and partial command suppor
 import json
 import warnings
 import traceback
+import contextlib
 import asyncio
 import discord
 from discord.ext import commands
 from ext import excepts
 from ext.const import SETFILE, LASTWRDFILE, STRFILE, get_prefix, cmdHdlLogger
-from modules.chat import chat
 from modules.consolemod import style
 from modules.tools import wrdssep
 import merlin
@@ -63,8 +63,9 @@ async def proc_cmd(message: discord.Message):
         try:
             ctx = await BOT.get_context(message)
             await BOT.invoke(ctx)
-            if BOT.db['sets'][f'g{message.guild.id}']["cmdHdl"]["delIssue"]:
-                await message.delete()
+            with contextlib.suppress(KeyError):
+                if BOT.db['sets'][f'g{message.guild.id}']["cmdHdl"]["delIssue"]:
+                    await message.delete()
             return 0
         except (discord.ext.commands.errors.CommandNotFound, discord.errors.NotFound):
             pass
@@ -83,12 +84,13 @@ async def save_quote(bot: merlin.Bot, message: discord.Message):
 
 async def chat_hdl(bot: merlin.Bot, message: discord.Message):
     settings = bot.db['sets']
-    chatChannelID = settings[f'g{message.guild.id}']['chatChannel']
-    if not isinstance(message.channel, discord.DMChannel) and (message.channel.id == chatChannelID) and not message.author.bot:
-        await chat.response(bot, message)
-    elif not isinstance(message.channel, discord.DMChannel) and not message.author.bot and settings[f'g{message.guild.id}']["cmdHdl"]["improveExp"]:
-        msgs = await message.channel.history(limit=2).flatten()
-        await asyncio.gather(chat.save(message.content, msgs[1].content))
+    with contextlib.suppress(KeyError):
+        chatChannelID = settings[f'g{message.guild.id}']['chatChannel']
+        if not isinstance(message.channel, discord.DMChannel) and (message.channel.id == chatChannelID) and not message.author.bot:
+            await bot.chatting.response(bot, message)
+        elif not isinstance(message.channel, discord.DMChannel) and not message.author.bot and settings[f'g{message.guild.id}']["cmdHdl"]["improveExp"]:
+            msgs = await message.channel.history(limit=2).flatten()
+            await asyncio.gather(bot.chatting.save(message.content, msgs[1].content))
 
 
 # discord extension

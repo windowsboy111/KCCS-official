@@ -3,6 +3,8 @@
 
 
 # [Unreleased]
+### Changed
+- Are you in the sudoers file?
 ### Fixed
 - failed to load cogs/utils
 - failed netLogger

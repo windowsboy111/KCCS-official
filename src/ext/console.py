@@ -52,8 +52,8 @@ async def test(bot: Bot, *args):
 async def halt(bot: Bot, *args):
     if '--now' not in args:
         print("Prompting servers (10 secs)")
-        await bot.netLogger("Bot will shutdown in 10 secs!")
-        await asyncio.sleep(10)
+        await asyncio.gather(bot.netLogger("Bot will shutdown in 10 secs!"),asyncio.sleep(10))
+        bot.chatting.stopChatTh()
     await bot.netLogger("Logging out...")
     print("Bye bye.")
     await bot.close()

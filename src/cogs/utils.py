@@ -472,13 +472,14 @@ class Ranking(commands.Cog):
         with contextlib.suppress(KeyError):
             if message.author.id in self.cooldown[message.guild.id]:
                 return
-        await self.addxp(message.author, random.randint(2, 7))
-        try:
-            self.cooldown[message.guild.id].append(message.author.id)
-        except KeyError:
-            self.cooldown[message.guild.id] = [message.author.id]
-        await asyncio.sleep(20)
-        self.cooldown[message.guild.id].remove(message.author.id)
+        with contextlib.suppress(KeyError, aiosqlite.OperationalError):
+            await self.addxp(message.author, random.randint(2, 7))
+            try:
+                self.cooldown[message.guild.id].append(message.author.id)
+            except KeyError:
+                self.cooldown[message.guild.id] = [message.author.id]
+            await asyncio.sleep(20)
+            self.cooldown[message.guild.id].remove(message.author.id)
 
 
     async def addxp(self, member: discord.Member, count):

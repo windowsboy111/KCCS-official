@@ -19,7 +19,8 @@ STATUSES = [
     'Hello, world!', 'Oracle Virtualbox VMs', 'VMware', 'Quick EMUlator (QEMU)', 'Global Information Tracker', 'Goddamn Idiotic Truckload of sh*t',
     'Arch Linux', 'Manjaro Linux', 'Microsoft Windows 10', 'Canonical Ubuntu', 'Kubuntu and Xubuntu', 'Linux Mint', 'Pop!_OS', 'OpenSUSE', 'Elementry OS', 'MX Linux', 'Debian', 'BSD',
     'Nothing', 'Status', 'what Merlin is playing', 'Twitter', 'StackOverflow', 'Mozilla Firefox', 'Visual Studio Code', 'zsh', 'fish', 'dash', 'mc (Midnight Commander)',
-    'Ruby On Rails', 'Python', 'JavaScript', 'Node.js', 'Angular', 'Assembly', 'C++ (see ga ga)', 'C', 'Docker', 'Java', 'ps1', 'Nim', 'Markdown', 'HTML', 'CSS', 'Perl', 'C#', 'R', 'Pascal']
+    'Ruby On Rails', 'Python', 'JavaScript', 'Node.js', 'Angular', 'Assembly', 'C++ (see ga ga)', 'C', 'Docker', 'Java', 'ps1', 'Nim', 'Markdown', 'HTML', 'CSS', 'Perl', 'C#', 'R', 'Pascal'
+]
 
 
 
@@ -37,20 +38,19 @@ RANKFILE = "data/rank.db"
 
 logger, eventLogger, cmdHdlLogger = gLogr('Merlin.root', 'Merlin.event', 'Merlin.cmdHdl')
 
-def get_prefix(bot: commands.Bot, message: discord.Message):
+def get_prefix(bot, message: discord.Message):
     """Get prefix for guild."""
     if isinstance(message.channel, discord.channel.DMChannel):
-        return (f'{bot.user.mention} ', '/')
-    with open(SETFILE, 'r') as f:
-        settings = json.load(f)
-        prefix = None
-        try:
-            prefix = settings['g' + str(message.guild.id)]['prefix']
-        except KeyError:
-            settings['g' + str(message.guild.id)] = {'prefix': ["/"]}
-            json.dump(settings, open(SETFILE, 'w'))
-            prefix = ['/']
-        return commands.when_mentioned_or(*prefix)(bot, message)
+        return commands.when_mentioned_or(*("/"))(bot, message)
+    settings = bot.db['sets']
+    prefix = None
+    try:
+        prefix = settings['g' + str(message.guild.id)]['prefix']
+    except KeyError:
+        settings['g' + str(message.guild.id)] = {'prefix': ["/"]}
+        json.dump(settings, open(SETFILE, 'w'))
+        prefix = ['/']
+    return commands.when_mentioned_or(*prefix)(bot, message)
 
 
 class Log:
@@ -75,8 +75,9 @@ class Log:
         if guild:
             for channel in guild.channels:
                 if channel.name == 'merlin-py':
-                    await channel.send(f"[{datetime.now()}] {message}")
+                    await channel.send(message)
                     return
+            return
         queue = asyncio.Queue()
         tasks = []
         for i in range(5):
@@ -118,7 +119,7 @@ def chk_sudo():
         if is_sudoers(ctx.author):
             return True
         await ctx.message.add_reaction("🛑")
-        return False
+        raise excepts.NotMod()
     return commands.check(predicate)
 
 
@@ -128,5 +129,6 @@ DEFAULT_SETTINGS = {
     "cmdHdl": {
         "cmdNotFound": 0,
         "delIssue": 0,
-        "improveExp": 0}
+        "improveExp": 0
+    }
 }

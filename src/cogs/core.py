@@ -1,4 +1,5 @@
 """Extension for importing the core cog containing important commands."""
+import types
 import asyncio
 import traceback
 import contextlib
@@ -92,6 +93,55 @@ class Core(commands.Cog):
         except ValueError:
             base[entry] = val
 
+    @commands.command(name='help', help='Shows this message', aliases=['?', 'cmd', 'cmds', 'commands', 'command'])
+    async def cmd_help(self, ctx, *, cmdName: str = ""):
+        """The Merlin help command."""
+        bot = ctx.bot
+        settings = bot.db['sets']
+        prefix = ctx.prefix
+        # check if user wants help for global cog
+        if cmdName.lower() == "global":
+            e = discord.Embed(title='Command list', description='wd: `/`', color=0x0000ff)
+            for cmd in bot.walk_commands():
+                e.add_field(name=cmd.name, value=cmd.short_doc or "<no help>")
+            return await ctx.send(embed=e)
+        # check if user wants help for a cog
+        for cogName, cog in bot.cogs.items():
+            if cogName.lower() == cmdName.lower():
+                e = discord.Embed(title='Command list', description=f'wd: `/{cog.qualified_name}`')
+                for cmd in cog.walk_commands():
+                    if any(cmd.parents) or ' ' in cmd.qualified_name:
+                        continue
+                    e.add_field(name=cmd.name, value=cmd.short_doc or "<no help>")
+                return await ctx.send(embed=e)
+        # show help for command
+        if cmdName:
+            command = bot.get_command(cmdName)
+            if not command or command.hidden: return await ctx.send(':mag: Command not found, please try again.')
+            path = "/" + (command.cog.qualified_name if command.cog else "None") + "/" + "/".join(command.full_parent_name.split(" "))
+            e = discord.Embed(title=f'Command `{prefix}' + command.qualified_name + '`', description=(path + '\n' + command.description or "<no description>"),color=0x0000ff)
+            usage = prefix + command.qualified_name + ' '
+            for key, val in command.clean_params.items():
+                if val.default:
+                    usage += f'<{val.name}>'
+                else:
+                    usage += f'<[{val.name}]>'
+                usage += ' '
+            e.add_field(name='Objective',   value=command.help)
+            e.add_field(name='Usage',       value=usage)
+            e.add_field(name='Cog',         value="<No cog>" if not command.cog else command.cog.qualified_name)
+            e.add_field(name='Aliases',     value=', '.join(command.aliases) or "<No aliases>")
+            if hasattr(command, 'commands') and any(command.commands):    # it is a group
+                e.add_field(name='Sub-Commands', value=''.join([f"`{prefix}{cmd.qualified_name}`: {cmd.short_doc}\n" for cmd in command.commands]))
+            await ctx.send(embed=e)
+            return
+        # no command name supplied, list all cogs
+        e = discord.Embed(title="Cogs list")
+        for _, cog in bot.cogs.items():
+            e.add_field(name=cog.qualified_name, value=cog.description or "<no description>")
+            e.set_footer(text="These are not commands, but groups of commands. `/help core` and stuff")
+        await ctx.send(embed=e)
+
     @commands.guild_only()
     @commands.group(name='settings', aliases=['configure'])
     async def cmd_settings(self, ctx: commands.Context, entry:str="", *, val:str=""):
@@ -125,8 +175,8 @@ class Core(commands.Cog):
                 )
                     .add_field(name="Server", value=f"{ctx.guild.id} / `{ctx.guild.name}`")
                     .add_field(name=self.bot.user, value=f"ver `{botinfo['version']}`")
-                    .add_field(name="Member count", value=len(ctx.guild.membes))
-                    .set_footer(f"Run {ctx.prefix}`help info` for more info about the info command (Sounds funny)")
+                    .add_field(name="Member count", value=len(ctx.guild.members))
+                    .set_footer(text=f"Run {ctx.prefix}`help info` for more info about the info command (Sounds funny)")
             )
 
     @info.command(name='user', help='info about a user (can be outside of this server!)')
@@ -135,15 +185,14 @@ class Core(commands.Cog):
         other_desc = ""
         if user.discriminator:
             other_desc += f":warning: username has conflict: {user.discriminator}\n"
-        await ctx.send(
-            discord.Embed(
+        await ctx.send(embed=discord.Embed(
                 title=f'user {user.display_name}',
                 description=f'```{user.id}{" | BOT" if user.bot else ""}```',
                 timestamp=user.created_at
             )\
             .add_field(name='Mention', value=f"{user.mention} / `{user.mention}`")\
             .set_author(name=user, icon_url=user.avatar_url)\
-            .set_footer(text='Account created at')\
+            .set_footer(text='Account created at')
         )
 
     @info.command(name='member', help='info about a member')
@@ -175,7 +224,7 @@ class Core(commands.Cog):
         embed.add_field(name="Desktop Status", value=getsStatus(member.desktop_status))\
             .add_field(name="Web App Status", value=getsStatus(member.web_status))\
             .set_author(name=member, icon_url=member.avatar_url)\
-            .add_field(name='Nickname', value=member.nick or f"<{member.mention} have no nickname>")\
+            .add_field(name='Nickname', value=member.nick or f"<{member.mention} has no nickname>")\
             .add_field(name='Roles', value=', '.join([r.mention for r in member.roles[1:]]) or "<None>")\
             .set_footer(text='Member joined at', icon_url=ctx.guild.icon_url)
         await ctx.send(embed=embed)
@@ -237,3 +286,4 @@ class Core(commands.Cog):
 
 def setup(bot: discord.ext.commands.Bot):
     bot.add_cog(Core(bot))
+    bot.cmd_help = types.MethodType(Core.cmd_help.__call__, bot)
