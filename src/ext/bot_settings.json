@@ -1,1 +1,11 @@
-{"name": "Merlin", "description": "an awesome discord bot coded in discord.py", "version": "3.0-b", "stage": "beta", "build": "2102.003", "unreleased": "None", "author name": "windowsboy111", "author disc": "windowsboy111#1046", "source": "[Github](https://github.com/windowsboy111/Merlin-py)", "hosting": "[repl.it](https://repl.it/@windowsboy111/merlin-py#main.py)", "pypi": "[`pip install Merlin-bot`](https://pypi.org/project/Merlin-bot)"}
+{
+    "name": "Merlin",
+    "description": "an awesome discord bot coded in discord.py",
+    "version": "3.0-b1",
+    "stage": "beta",
+    "build": "2102.004",
+    "unreleased": "None",
+    "author name": "windowsboy111",
+    "author disc": "windowsboy111#1046",
+    "source": "[Github](https://github.com/windowsboy111/Merlin-py)"
+}

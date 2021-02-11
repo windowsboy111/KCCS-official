@@ -263,7 +263,7 @@ class Core(commands.Cog):
             .add_field(name='Roles count', value=len(ctx.guild.roles))\
             .add_field(name='Channels count', value=f"{len(ctx.guild.text_channels)} text / {len(ctx.guild.voice_channels)} voice - total {len(ctx.guild.channels)}")\
             .add_field(name='Categories count',value=len(ctx.guild.categories))\
-            .add_field(name='Sudoers', value=", ".join([discord.utils.get(ctx.guild.roles, name=r).mention for r in settings[f'g{ctx.guild.id}']["sudoers"]]) or "<None>")\
+            .add_field(name='Sudoers', value=", ".join([ctx.guild.get_role(r).mention for r in settings[f'g{ctx.guild.id}']["sudoers"]]) or "<None>")\
             .add_field(name='Rules channel', value=ctx.guild.rules_channel.mention if ctx.guild.rules_channel else "Not set")\
             .add_field(name='System channel', value=ctx.guild.system_channel.mention if ctx.guild.system_channel else "Not set")\
             .add_field(name='Region', value=str(ctx.guild.region) or "Not set / found")\
