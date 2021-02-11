@@ -3,6 +3,8 @@
 
 
 ## [Unreleased]
+### Fixed
+- non-sodoers can change settings
 
 ## [3.0-b1]
 ### Changed

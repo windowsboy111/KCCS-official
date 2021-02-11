@@ -143,6 +143,7 @@ class Core(commands.Cog):
         await ctx.send(embed=e)
 
     @commands.guild_only()
+    @chk_sudo()
     @commands.group(name='settings', aliases=['configure'])
     async def cmd_settings(self, ctx: commands.Context, entry:str="", *, val:str=""):
         """Configure Merlin for this discord server."""
