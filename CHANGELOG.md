@@ -4,7 +4,7 @@
 
 ## [Unreleased]
 
-## [3.0.b1]
+## [3.0-b1]
 ### Changed
 - Are you in the sudoers file?
 ### Fixed
