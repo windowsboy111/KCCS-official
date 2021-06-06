@@ -1,8 +1,0 @@
-{
-    "notOwner": "Hey bud, you have dug too deep into how the bot works! The command you have just ran is for the bot owner only :P you cannot do that!",
-    "CommandInvokeError": "<:err:740034702743830549> `{content}`\n:warning: Usually this means you invoke the command in an unintended way. \n:information_source: If you think there's a problem / issue with the command, please [open a new bug issue on github](https://github.com/windowsboy111/merlin-py/issues/new?assignees=&labels=bug&template=bug_report.md&title=%5BBUG%2FISSUE%5D).",
-    "tut": {
-        "help": "The help command by default without any params (aka `/help`) will **list all commands**.\nA __param__ (parameter) is a value that can be passed after typing the command. For example:\n`/help tut`, where `tut` is a param, `help` is the command name, `/` is the prefix.\nIn the `help` command, if an argument is passed, and the command can be found, information about the command will be shown in an embed.\n- description: virtual location of the command: `/<cog>/<command>/<sub-command-1>/<sub-command-2>`\n- usage: if the parameter is quoted with `[]`, that means it is optional.",
-        "embed": "Embed is a pretty way for bots to show data provided by discord.\nAn embed consists of:\n- title\n- description\n- fields\n- footer\n- timestamp\n- author name\n- author avatar\n- color / colour\n- image\n- url\n- thumbnail\n- video"
-    }
-}

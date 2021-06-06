@@ -36,7 +36,6 @@ class Fun(commands.Cog):
         response = random.choice(lolcough)
         msg = await ctx.send(response)
         await msg.add_reaction('👀')
-        return
 
     @commands.command(name='test', help="Respond with test messages!")
     async def test(self, ctx):
@@ -48,7 +47,6 @@ class Fun(commands.Cog):
         response = random.choice(loltest)
         msg = await ctx.send(response)
         await msg.add_reaction('👍')
-        return
 
     @commands.command(name='stupid', help='Shout at stupid things')
     async def stupid(self, ctx, *, args='that'):
@@ -62,8 +60,7 @@ class Fun(commands.Cog):
     @commands.command(name='whatis', help='Tells you what the input is. /whatis minecraft')
     async def whatis(self, ctx, *, args=""):
         if args == "":
-            await ctx.send("Bruh, where's the argument???")
-            return
+            return await ctx.send("Bruh, where's the argument???")
         await ctx.send(
             random.choice([
                 f"{args} is generally {args}.", f"Technically, {args} is {args}!", f"To know what {args} is, please run `!urban {args}`",
@@ -75,9 +72,7 @@ class Fun(commands.Cog):
     @commands.command(name='boomer', help="/boomer [person]", aliases=['boom', 'okboomer'])
     async def boomer(self, ctx, *, person=""):
         if person == "":
-            person = ctx.message.author
-            await ctx.send(f'OK BOOMER {person.mention}')
-            return
+            return await ctx.send(f'OK BOOMER {ctx.message.author.mention}')
         await ctx.send(f'OK BOOMER {person}')
 
     @commands.group(name='media', help='/media [sub-commands]', aliases=['sent'])
@@ -87,7 +82,7 @@ class Fun(commands.Cog):
             return
 
     @media.command(name='no', help='/media no, will give you file related to "no"', aliases=['nope', 'nah', 'np'])
-    async def no(self, ctx, *, args=''):
+    async def no(self, ctx):
         async with ctx.typing():
             global lolpwd
             rtrn = random.choice([
@@ -114,20 +109,14 @@ class Fun(commands.Cog):
             await ctx.send(file=discord.File(f"{lolpwd}Grian - Mumbo AFK.mp3"))
 
     @commands.command(name='say', help='the bot is talking!')
-    async def say(self, ctx, *, args=""):
-        if args == '':
-            return
-        await ctx.send(args, tts=True)
+    async def say(self, ctx, *, message):
+        await ctx.send(message, tts=True)
         await ctx.message.delete()
-        return
 
     @commands.command(name='send', help='The bot is sending messages!')
-    async def send(self, ctx, *, args=""):
-        if args == "":
-            return
-        await ctx.send(args)
+    async def send(self, ctx, *, message):
+        await ctx.send(message)
         await ctx.message.delete()
-        return
     
     @commands.command(name='quote', help='last message of that guy')
     async def quote(self, ctx, members: commands.Greedy[discord.Member]):

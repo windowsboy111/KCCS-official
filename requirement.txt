@@ -1,4 +1,4 @@
-pyTableMaker
+pyTableMaker==1.3a2
 discord.py
 chatterbot==0.8.7
 chatterbot-corpus
@@ -8,3 +8,4 @@ python-dotenv
 psutil
 duckduckgo3
 aiosqlite
+python-dotenv

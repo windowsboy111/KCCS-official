@@ -7,13 +7,14 @@ import discord
 import random
 import asyncio
 import os
+import merlin
 from ext.const import SETFILE, STATUSES, eventLogger
-MODE = os.getenv('MODE')
-settings = json.load(open(SETFILE))
+# settings = json.load(open(SETFILE))
 
 
-async def status(bot: discord.ext.commands.Bot):
+async def status(bot: merlin.Bot):
     await bot.wait_until_ready()
+    MODE = bot.MODE
     while True:
         try:
             if not MODE or MODE == 'NORMAL':
@@ -52,4 +53,4 @@ async def on_guild_join(guild: discord.Guild):
 def setup(bot: discord.ext.commands.Bot):
     bot.loop.create_task(status(bot))
     bot.event(on_member_join)
-    bot.event(on_guild_join)
+    # bot.event(on_guild_join)

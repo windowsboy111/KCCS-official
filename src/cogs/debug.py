@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import psutil
+import merlin
 SANDBOX_TRACEBACK = 'samples/traceback.sndbx'
 
 
@@ -48,14 +49,16 @@ class Debug(commands.Cog):
         )
 
     @commands.command(help='check if a command runs properly')
-    async def sandbox(self, ctx, *, commandName: str):
+    async def sandbox(self, ctx: merlin.Context, *, commandName: str):
         """check if a command runs properly"""
-        command = None
+        command = self.bot.get_command(commandName, True)
+        if command is None:
+            return await ctx.send("Sandbox: Command not found.")
         ret = None
         startTime = None
         errorCode = int()
         try:
-            msg = await ctx.send(self.bot.user.mention + commandName)
+            msg = await ctx.send(self.bot.user.mention + " " + commandName)
             startTime = datetime.now()  
             ret = await self.bot.invoke(await self.bot.get_context(msg))
         except Exception as err:
