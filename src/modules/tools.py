@@ -1,8 +1,12 @@
 """
 This module contains tools that are neither related to discord.py nor Merlin
 """
-import asyncio, sys, traceback
-
+import sys
+import asyncio
+import functools
+import traceback
+from modules import proc
+from modules import datatypes as dt
 
 class AsyncPool:
     def __init__(self, queue: asyncio.Queue = None):
@@ -79,16 +83,6 @@ class AsyncPool:
         await self.start(worker, num_workers)
         await self.join(timeout)
 
-
-def exec_async(c):
-    while True:
-        try:
-            c.send(None)
-        except StopIteration as e:
-            return e.value
-
-wrdssep = lambda string, count: [string[i:i+count] for i in range(0, len(string), count)]
-
 def msgsep(msg: str):
     results = []
     result = ""
@@ -102,3 +96,9 @@ def msgsep(msg: str):
     if result != "":
         results.append(result)
     return results
+
+
+@functools.lru_cache()
+def get_cmd(name: str, cmdlist: dt.CmdDict) -> dt.CmdRes:
+    outcmdname, outcandidates = proc.get_cmd(name, set(cmdlist.keys()))
+    return dt.CmdRes(cmdlist[outcmdname] if outcmdname else None, name, outcandidates if any(outcandidates) else None)

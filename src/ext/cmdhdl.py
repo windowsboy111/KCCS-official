@@ -4,7 +4,6 @@ Message and command handling discord.py extension.
 Command processing, command invoking, error handling, and partial command support here.
 """
 import json
-import warnings
 import traceback
 import contextlib
 import asyncio
@@ -13,7 +12,6 @@ from discord.ext import commands
 from ext import excepts
 from ext.const import SETFILE, LASTWRDFILE, STRFILE, get_prefix, cmdHdlLogger
 from modules.consolemod import style
-from modules.tools import wrdssep
 import merlin
 import special
 BOT = None
@@ -48,7 +46,7 @@ async def proc_cmd(message: discord.Message):
     if prefix is None:
         return  # not a cmd
 
-    ret: merlin.CmdRes = BOT.get_command(message.content[len(prefix):], last_gud=True)
+    ret: merlin.CmdRes = BOT.get_command(message.content[len(prefix):])
     cmd = ret.cmd
     if cmd is None:
         if not ret.candidates:
@@ -120,10 +118,11 @@ def setup(bot: merlin.Bot):
     @bot.event
     async def on_message(message: discord.Message):
         # run pre-cmd hooks
+        await save_quote(bot, message)
         if await special.pre_on_message(message):
             return 0
         # gather and run in parallel (nowait)
-        await asyncio.gather(save_quote(bot, message), proc_cmd(message), chat_hdl(bot, message))
+        await asyncio.gather(proc_cmd(message), chat_hdl(bot, message))
         await special.post_on_message(message)   # set fn for callback when done
 
     @bot.event

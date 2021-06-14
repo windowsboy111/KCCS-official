@@ -1,29 +1,22 @@
 #!../bin/python
 """Core part, inheritance."""
 import os
-import sys
 import copy
 import json
-import types
 import random
 import asyncio
-import warnings
-import functools
 import traceback
 import contextlib
-import dataclasses
 from functools import wraps
 # additional libs
-import numpy
 import discord
 import aiosqlite
 from discord.ext import tasks
 from discord.ext import commands
 # python external files
-import proc
-from ext import excepts
 from ext.logcfg import gLogr
 from ext.const import STATUSES, style, Log, BOTSETFILE, LASTWRDFILE, SETFILE, WARNFILE, STRFILE, TAGFILE, RANKFILE, get_prefix
+from modules import tools
 __all__ = ["Bot"]
 exts = ['ext.tasks', 'ext.cmdhdl', 'ext.errhdl', 'ext.console', 'modules.chat.chat']
 root_logger = gLogr('Merlin.root')
@@ -33,30 +26,6 @@ for cog in os.listdir('cogs/'):
     if cog.endswith(".py"):
         exts.append("cogs." + cog[:-3])
 
-get_exc = lambda err: "".join(traceback.format_exception(err.__class__, err, sys.exc_info()[2]))
-
-@dataclasses.dataclass(frozen=True)
-class CmdRes:
-    cmd: commands.Command
-    query: str
-    candidates: set = dataclasses.field(default_factory=set)
-
-class Tools:
-    get = discord.utils.get
-    find = discord.utils.find
-    MethType = types.MethodType
-    get_exc = get_exc
-
-
-class Context(commands.Context):
-    def __init__(self, **attrs):
-        super().__init__(**attrs)
-        self.errors = excepts
-        self.tools = Tools
-
-class CmdDict(dict):
-    def __hash__(self):
-        return hash(frozenset(self.items()))
 
 class BotMeta(type):
     def __new__(cls, name, bases, dict_, **kwargs):
@@ -90,6 +59,7 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
     MODE = os.getenv('MODE')
     FILES = {BOTSETFILE: "botsets", LASTWRDFILE: "lastwrds", SETFILE: "sets", WARNFILE: "warns", STRFILE: "strs", TAGFILE: "tags", RANKFILE: "ranks"}
     db = {}
+    tls = tools.dt.Tools
 
     def __init__(self):
         super().__init__(**self.__inline_kwargs__)
@@ -125,105 +95,29 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             to_do_coro.append(self.fsync(file, name))
         await asyncio.gather(*to_do_coro)
 
-    @staticmethod
-    def get_cmd_patch(name, cmd_list):
-        name = name.lower()
-        char_cor = 0  # number of right chars
-        last_gud_cmd = None
-        ambiguous: set
-        for cmd_name, cmd in cmd_list.items():
-            if name == cmd_name:  # exact match after all...
-                return cmd
-            if len(name) > len(cmd_name):
-                continue
-            cor_count = 0
-            for i, c in enumerate(name):
-                valid = False  # not valid means end of loop or unmatch
-                try:
-                    if c == cmd_name[i]:
-                        cor_count += 1
-                        valid = True
-                except IndexError:
-                    break  # search query longer than command name
-                # unmatch
-                if len(name) == i + 1:  # end of loop
-                    valid = False
-                if (cor_count < char_cor or cor_count == 0) and not valid:
-                    break  # smaller than the record bai
-                if cor_count == char_cor and cor_count != 0 and not valid:
-                    # the trip ended here, we got two matching commands
-                    if any(ambiguous):  # the list is not blank
-                        ambiguous.add(cmd_name)
-                        continue
-                    ambiguous.add(last_gud_cmd.name)
-                    ambiguous.add(cmd_name)
-                if cor_count > char_cor:
-                    # why both valid and not valid: if this is end of loop the cmd will be recorded
-                    last_gud_cmd = cmd
-                    char_cor = cor_count
-                    ambiguous.clear()  # longer than the old record, the ambiguous ones are shorter kara reset
-                if not valid:
-                    continue
-        if any(ambiguous):
-            warnings.warn(f"Ambiguous command search '{name}' -- {', '.join(ambiguous)}", excepts.CmdSearchWarning)
-            return None
-        return last_gud_cmd
-
-    @functools.lru_cache()
-    def get_cmd_patch_new(self, name: str, cmdlist: CmdDict) -> CmdRes:
-        """Search for a command in a provided dictionary"""
-        name = name.lower() # req cmd
-        cmds = numpy.array(tuple(cmdlist.keys()), dtype=str) # np arr str cmd names
-
-        if name in cmds:
-            return CmdRes(cmdlist[name], name)
-
-        # check for commands starting with the name
-        res = cmds[cmds[:len(name)] == name]
-        if len(res) == 1:
-            return CmdRes(cmdlist[str(res[0])], name)
-        if len(res): # which means len(res) != 0; aka len(res) > 1
-            return CmdRes(None, name, tuple(res))
-
-        # maybe they made some extra chars?
-        res = cmds[len(cmds) < len(name)]
-        if len(res) == 1:
-            return CmdRes(cmdlist[str(res[0])], name)
-        if len(res):
-            return CmdRes(None, name, tuple(res))
-
-        return CmdRes(None, name)
-
-    def get_cmd_cpp(self, name: str, cmdlist: CmdDict) -> CmdRes:
-        outcmdname, outcandidates = proc.get_cmd(name, set(cmdlist.keys()))
-        return CmdRes(cmdlist[outcmdname] if outcmdname else None, name, outcandidates if any(outcandidates) else None)
-
-    def get_command(self, name_s, last_gud=False) -> CmdRes:  # allow shorterned commands (SAP)
+    def get_command(self, name_s) -> tools.dt.CmdRes:  # allow shorterned commands (SAP)
         if ' ' not in name_s:
-            return self.get_cmd_cpp(name_s, CmdDict(self.all_commands))
+            return tools.get_cmd(name_s, tools.dt.CmdDict(self.all_commands))
 
         names = name_s.split()
         if not names:
             return None
-        obj = self.get_cmd_cpp(names[0], CmdDict(self.all_commands))
+        obj = tools.get_cmd(names[0], tools.dt.CmdDict(self.all_commands))
         if not isinstance(obj.cmd, commands.GroupMixin):
             return obj
 
         for name in names[1:]:
             new = None
             try:
-                new = self.get_cmd_cpp(name, CmdDict(obj.cmd.all_commands))
+                new = tools.get_cmd(name, tools.dt.CmdDict(obj.cmd.all_commands))
             except AttributeError:
                 return obj
             if new is None:
-                if not last_gud:
-                    warnings.warn(f"{name} is not in {obj.cmd.name}.", excepts.BadSubcommand)
-                    return None
                 return obj
             obj = new
         return obj
 
-    async def get_context(self, message: discord.Message, *, cls=Context, cmd=None):
+    async def get_context(self, message: discord.Message, *, cls=tools.dt.Context, cmd=None):
         view = commands.view.StringView(message.content)
         ctx = cls(prefix=None, view=view, bot=self, message=message)
 
@@ -251,8 +145,8 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
         ctx.invoked_with = invoker
         ctx.prefix = invoked_prefix
         # ctx.command = self.get_command(message.content[len(ctx.prefix):], last_gud=True)
-        print(self.get_command(invoker, last_gud=True))
-        ctx.command = cmd or self.get_command(invoker, last_gud=True).cmd
+        print(self.get_command(invoker))
+        ctx.command = cmd or self.get_command(invoker).cmd
         return ctx
 
 
@@ -265,6 +159,7 @@ class Bot(BotMixin, command_prefix=get_prefix, description="an awesome open sour
     """
     netLogger: Log
     chatting: None
+
     async def __aenter__(self):
         """Basically `async with bot:`."""
         root_logger.info("Starting tasks")

@@ -4,6 +4,7 @@ import discord
 from discord import flags
 from discord.ext import commands
 import merlin
+from ext import cmds
 
 
 class Core(commands.Cog):
@@ -11,22 +12,23 @@ class Core(commands.Cog):
     Type: discord.ext.commands.Cog.
 
     The important uilities (sorta like cli) are in this cog / extension.
-    Load this extension as an external file with `client.load_extension('cogs.core')` 
+    Load this extension as an external file with `client.load_extension('cogs.core')`
     ---
-    This cog contains: 
+    This cog contains:
     """
-
     description = "The core utilities"
+
     def __init__(self, bot):
         self.bot: merlin.Bot = bot
 
     @commands.command(name='id')
+    @cmds.cli(showfmt=1)
     async def cmd_id(self, ctx, val: typing.Union[discord.TextChannel, discord.VoiceChannel, discord.User, discord.Message, discord.Role, discord.Invite]):
         """
         Return the id of a mention/obj.
         Supports text channels, voice channels, users, members, links to messages/invites, and roles
         """
-        return await ctx.send(val.id)
+        return val.id
 
     @commands.command(name='reply')
     async def reply(self, ctx, msg: str):
@@ -36,8 +38,12 @@ class Core(commands.Cog):
         """
         return await ctx.message.reply(msg)
 
-    @flags.MessageFlags()
     @commands.command(name="embed")
+    async def embed(self, ctx):
+        """
+        Create a customised embed.
+        """
+        return  # not impl'd
 
 
 def setup(bot: merlin.Bot):

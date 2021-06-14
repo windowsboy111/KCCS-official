@@ -152,3 +152,6 @@ src/samples/traceback.sndbx
 .replit
 .atom-build.json
 pyvenv.cfg
+.idea/
+*.kdev4
+**/*.cmake
