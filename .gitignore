@@ -149,5 +149,6 @@ src/data/pyoutput.txt
 src/data/warnings.db
 src/ext/chat/chats.sqlite3
 src/samples/traceback.sndbx
-.gitignore
 .replit
+.atom-build.json
+pyvenv.cfg

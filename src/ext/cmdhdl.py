@@ -47,31 +47,49 @@ async def proc_cmd(message: discord.Message):
             break
     if prefix is None:
         return  # not a cmd
-    with warnings.catch_warnings(record=True) as w:
-        cmd = BOT.get_command(message.content[len(prefix):], last_gud=True)
-        if len(w) == 1:
-            # if issubclass(w[-1].category, excepts.AmbiguousSearchQuery):
-            #     return await message.channel.send(w[-1].message)
-            await message.channel.send(w[-1].message)
+
+    ret: merlin.CmdRes = BOT.get_command(message.content[len(prefix):], last_gud=True)
+    cmd = ret.cmd
+    if cmd is None:
+        if not ret.candidates:
+            return
+        candidates = tuple(set(ret.candidates))
+        out: str = "```md\n## Command Candidates ##\n"
+        for i, name in enumerate(candidates): # convert to set to make it unique
+            out += f"{i+1}. {name}\n"
+            if i == 9:
+                break
+        out += "**Send your numerical selection**```"
+        msg = await message.reply(out)
+        with contextlib.suppress(Exception):
+            try:
+                num_r = await BOT.wait_for('message', check=lambda m: m.author == message.author and m.channel == message.channel, timeout=30)
+            except TimeoutError:
+                return await msg.delete()
+            cmd_name = candidates[int(num_r.content)-1]
+            cmd = BOT.all_commands[cmd_name]
+            await num_r.delete()
+        await msg.delete()
         if cmd is None:
-            return  # not a cmd
-        cmdHdlLogger.info(f'{message.author} has issued command: {message.content}')
-        try:
-            await BOT.netLogger(f"{message.channel.mention} {message.author} has issued command: `{message.content}`", guild=message.guild)
-        except AttributeError:  # DM
-            pass
-        try:
-            ctx = await BOT.get_context(message)
+            return await message.reply("Failed to retrieve commands!")
+
+    cmdHdlLogger.info(f'{message.author} has issued command: {message.content[len(prefix):]}')
+    with contextlib.suppress(AttributeError): # might be in DM
+        BOT.loop.create_task(BOT.netLogger(f"{message.channel.mention} {message.author} has issued command: `{message.content}`", message.guild))
+    
+    with contextlib.suppress(Exception):
+        with contextlib.suppress(commands.errors.CommandNotFound, discord.errors.NotFound):
+            ctx = await BOT.get_context(message, cmd=cmd)
             await BOT.invoke(ctx)
             with contextlib.suppress(KeyError):
                 if BOT.db['sets'][f'g{message.guild.id}']["cmdHdl"]["delIssue"]:
                     await message.delete()
             return 0
-        except (discord.ext.commands.errors.CommandNotFound, discord.errors.NotFound):
-            pass
-        except Exception:
-            await message.add_reaction("❌")
-            cmdHdlLogger.debug(traceback.format_exc(limit=5))
+        await message.add_reaction("🔍")
+        return 2  # sth not found, should not happen
+    await message.add_reaction("❌")
+    cmdHdlLogger.debug(traceback.format_exc(limit=5))
+    return 1
 
 
 async def save_quote(bot: merlin.Bot, message: discord.Message):

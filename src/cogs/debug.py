@@ -111,10 +111,6 @@ class Debug(commands.Cog):
         embed.add_field(name=f'Operating System', value=sys.platform)
         await ctx.send(embed=embed)
 
-    @commands.command(name='id')
-    async def cmd_id(self, ctx, val: typing.Union[discord.TextChannel, discord.VoiceChannel, discord.User, discord.Guild, discord.Message, discord.Role]):
-        return await ctx.send(val.id)
-
 
 def setup(bot):
     bot.add_cog(Debug(bot))

@@ -30,7 +30,7 @@ def cls():
 
 def eraseline():
     """Erase the whole line (till the end of line)"""
-    print("\033[2J")
+    print("\033[2K")
 
 
 def savepos():
