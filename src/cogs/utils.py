@@ -606,7 +606,7 @@ class Ranking(commands.Cog):
         db.row_factory = aiosqlite.Row
         cur = await db.execute(f'SELECT ID, LVL, XP FROM g{ctx.guild.id} ORDER BY LVL DESC, XP DESC;')
         rows = await cur.fetchall()
-        table = pyTableMaker.onelineTable()
+        table = pyTableMaker.OnelineTable()
         col_rank = table.new_column("Rank")
         col_member = table.new_column("Member")
         col_lvl = table.new_column("Level")

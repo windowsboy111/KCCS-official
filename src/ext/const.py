@@ -5,11 +5,10 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from ext import excepts
-from ext.logcfg import gLogr
 from modules.consolemod import style
+from ext.logcfg import gLogr
 __all__ = [
-    "fix_settings", "DEFAULT_SETTINGS", "chk_sudo", "log", "bot", "get_prefix",
-    "STATUSES", "BOTSETFILE", "LASTWRDFILE", "SETFILE", "WARNFILE", "STRFILE", "TAGFILE"
+    "DEFAULT_SETTINGS", "chk_sudo", "get_prefix", "STATUSES", "BOTSETFILE", "LASTWRDFILE", "SETFILE", "WARNFILE", "STRFILE", "TAGFILE"
 ]
 
 
@@ -21,7 +20,6 @@ STATUSES = [
     'Nothing', 'Status', 'what Merlin is playing', 'Twitter', 'StackOverflow', 'Mozilla Firefox', 'Visual Studio Code', 'zsh', 'fish', 'dash', 'mc (Midnight Commander)',
     'Ruby On Rails', 'Python', 'JavaScript', 'Node.js', 'Angular', 'Assembly', 'C++ (see ga ga)', 'C', 'Docker', 'Java', 'ps1', 'Nim', 'Markdown', 'HTML', 'CSS', 'Perl', 'C#', 'R', 'Pascal'
 ]
-
 
 
 # path for file storing data
@@ -37,6 +35,7 @@ RANKFILE = "data/rank.db"
 
 
 logger, eventLogger, cmdHdlLogger = gLogr('Merlin.root', 'Merlin.event', 'Merlin.cmdHdl')
+
 
 def get_prefix(bot, message: discord.Message):
     """Get prefix for guild."""
@@ -56,6 +55,7 @@ def get_prefix(bot, message: discord.Message):
 class Log:
     def __init__(self, bot):
         self.bot = bot
+
     @staticmethod
     async def worker_log(name, queue):
         slept = 0
@@ -89,6 +89,7 @@ class Log:
         while not queue.empty():
             await asyncio.sleep(0.2)
 
+
 def is_sudoers(member: discord.Member):
     """\
     Type: function.
@@ -109,6 +110,7 @@ def is_sudoers(member: discord.Member):
             with open(SETFILE, 'w') as outfile:
                 json.dump(settings, outfile)
     return False
+
 
 def chk_sudo():
     """\

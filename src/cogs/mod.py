@@ -120,7 +120,7 @@ class Mod(commands.Cog):
         if rows == []:
             return await ctx.send(f":octagonal_sign: Member {member.mention} does not have any warnings.")
         if raw == 'raw':
-            t = pyTableMaker.onelineTable(cellwrap=25)
+            t = pyTableMaker.OnelineTable(cellwrap=25)
             t.new_column('Warn No.')
             t.new_column('Reason')
             t.new_column('Moderator')

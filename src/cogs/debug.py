@@ -1,6 +1,6 @@
 """Extension with commands for development use."""
-import os, sys
-import typing
+import os
+import sys
 import traceback
 import discord
 from discord.ext import commands
@@ -14,10 +14,10 @@ class Debug(commands.Cog):
     """
     Type: discord.ext.commands.Cog
 
-    Most of the debug commands are stored in this cog  
+    Most of the debug commands are stored in this cog
     Load this extension as an external file with `client.load_extension('cogs.debug')`
     ---
-    This cog contains:  
+    This cog contains:
     ## Commands
     - ping
     - sandbox
@@ -26,6 +26,7 @@ class Debug(commands.Cog):
     """
 
     description = "Commands for debugging or dev."
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
@@ -59,7 +60,7 @@ class Debug(commands.Cog):
         errorCode = int()
         try:
             msg = await ctx.send(self.bot.user.mention + " " + commandName)
-            startTime = datetime.now()  
+            startTime = datetime.now()
             ret = await self.bot.invoke(await self.bot.get_context(msg))
         except Exception as err:
             timeElapsed = datetime.now() - startTime
@@ -109,14 +110,10 @@ class Debug(commands.Cog):
         freq = psutil.cpu_freq()
         proc.memory_full_info()
         embed.add_field(name=f'{psutil.cpu_count()} CPUs', value=f'```{cpu.syscalls} Syscalls\n{round(cpu.ctx_switches // 1000000)}M Switches```')
-        embed.add_field(name=f'CPU Interrupts', value=f"```{round(cpu.interrupts // 1000000)}M ({round(cpu.soft_interrupts // 1000000)}M soft)```")
-        embed.add_field(name=f'CPU Frequency', value=f"```Currently {round(freq.current)}Mhz\nMax {round(freq.max)}Mhz\nMin {round(freq.min)}Mhz```")
-        embed.add_field(name=f'Operating System', value=sys.platform)
+        embed.add_field(name='CPU Interrupts', value=f"```{round(cpu.interrupts // 1000000)}M ({round(cpu.soft_interrupts // 1000000)}M soft)```")
+        embed.add_field(name='CPU Frequency', value=f"```Currently {round(freq.current)}Mhz\nMax {round(freq.max)}Mhz\nMin {round(freq.min)}Mhz```")
+        embed.add_field(name='Operating System', value=sys.platform)
         await ctx.send(embed=embed)
-
-    @commands.command(name='id')
-    async def cmd_id(self, ctx, val: typing.Union[discord.TextChannel, discord.VoiceChannel, discord.User, discord.Guild, discord.Message, discord.Role]):
-        return await ctx.send(val.id)
 
 
 def setup(bot):

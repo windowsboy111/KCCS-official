@@ -1,7 +1,7 @@
 import sys
 from modules.consolemod import style
 import asyncio
-from merlin import Bot, get_exc
+from merlin import Bot
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
@@ -27,7 +27,7 @@ async def console(bot):
                     ret = await commands[cmd](bot)
                 ret = await commands[cmd](bot, *args)
             except Exception as error:
-                print(f"{style.red}{get_exc(error)}{style.reset}", file=sys.stderr)
+                print(f"{style.red}{bot.tls.get_exc(error)}{style.reset}", file=sys.stderr)
         else:
             print("Command not found.")
             ret = -2
@@ -38,9 +38,6 @@ def setc(name="", *, aliases=[]):
         for alias in aliases:
             commands[alias] = coro
     return decorate
-
-def setup(bot: Bot):
-    bot.loop.create_task(console(bot))
 
 
 @setc()
@@ -64,7 +61,7 @@ async def _exec(bot: Bot, *args):
     try:
         exec(" ".join(args), globals(), locals())
     except Exception as error:
-        print(f"{style.red}{get_exc(error)}{style.reset}", file=sys.stderr)
+        print(f"{style.red}{bot.tls.get_exc(error)}{style.reset}", file=sys.stderr)
         return 2
     return 0
 
@@ -80,3 +77,6 @@ async def cmd_log(bot: Bot, *args):
     await bot.netLogger(" ".join(args))
     print("Okay")
     return 0
+
+def setup(bot: Bot):
+    bot.loop.create_task(console(bot))
