@@ -14,13 +14,13 @@ def cli(*, showfmt: int = 0):
     2: ```output like so```
     """
     def inner(fn):
-        async def decorate(ctx: merlin.tools.dt.Context, *cmdargs, **cmdkws):
+        async def decorate(ctx: merlin.Context, *cmdargs, **cmdkws):
             ret = await fn(ctx, *cmdargs, **cmdkws)
             if not showfmt:
                 return await ctx.send(ret)
-            if showfmt is 1:
+            if showfmt == 1:
                 return await ctx.send(f"`{ret}`")
-            if showfmt is 2:
+            if showfmt == 2:
                 return await ctx.send(f"```{ret}```")
         return decorate
     return inner

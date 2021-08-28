@@ -3,7 +3,7 @@ import discord
 import random
 import json
 lolpwd = 'samples/'
-from ext.const import LASTWRDFILE
+from modules.const import LASTWRDFILE
 
 
 class Fun(commands.Cog):
@@ -25,6 +25,15 @@ class Fun(commands.Cog):
     description = "Funny and old commands I guess."
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        lastword = self.bot.db["lastwrds"]
+        try:
+            lastword[f"g{message.guild.id}"][str(message.author.id)] = message.id
+        except KeyError:
+            lastword[f"g{message.guild.id}"] = {message.author.id: message.id}
+        self.bot.db['lastwrds'] = lastword
 
     @commands.command(name='cough', help="Simulate cough. :)")
     async def cough(self, ctx):

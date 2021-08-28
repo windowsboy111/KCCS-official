@@ -1,88 +1,139 @@
 #!../bin/python
 """Core part, inheritance."""
 import os
-import copy
+import sys
 import json
 import random
 import asyncio
 import traceback
 import contextlib
-from functools import wraps
+
 # additional libs
 import discord
 import aiosqlite
 from discord.ext import tasks
 from discord.ext import commands
+
 # python external files
-from ext.logcfg import gLogr
-from ext.const import STATUSES, style, Log, BOTSETFILE, LASTWRDFILE, SETFILE, WARNFILE, STRFILE, TAGFILE, RANKFILE, get_prefix
+from modules.logcfg import gLogr
+from modules.const import (
+    style,
+    NetLog,
+    BOTSETFILE,
+    LASTWRDFILE,
+    SETFILE,
+    WARNFILE,
+    STRFILE,
+    TAGFILE,
+    RANKFILE,
+    get_prefix,
+    OnlineMode,
+)
 from modules import tools
+from internal.classes import Tools, Context
+
 __all__ = ["Bot"]
-exts = ['ext.tasks', 'ext.cmdhdl', 'ext.errhdl', 'ext.console', 'modules.chat.chat']
-root_logger = gLogr('Merlin.root')
+exts = [
+    "jishaku",
+    "modules.chat.chat",
+]
+logger = gLogr(__name__)
 
 # scan the cogs folder
-for cog in os.listdir('cogs/'):
-    if cog.endswith(".py"):
-        exts.append("cogs." + cog[:-3])
+for ext in os.listdir("ext/"):
+    if ext.endswith(".py"):
+        exts.append("ext." + ext[:-3])
 
 
-class BotMeta(type):
-    def __new__(cls, name, bases, dict_, **kwargs):
-        bot = super().__new__(cls, name, bases, dict_)
-        bot.__inline_commands__ = []
+class Bot(commands.Bot):
+    """
+    Class for Merlin Bot client.
 
-        for name in dir(bot):
-            value = getattr(bot, name)
-            if isinstance(value, commands.Command):
+    subset of commands.Bot
+    Commands included.
+    """
 
-                value.callback = cls.wrapper(bot, value)
-                value.params.popitem(last=False)
-
-                setattr(bot, name, value)
-                bot.__inline_commands__.append(value)
-
-        bot.__inline_kwargs__ = kwargs
-        return bot
-
-    def wrapper(self, value):
-        callback = copy.copy(value.callback)
-
-        @wraps(value.callback)
-        def custom_callback(*args, **kwargs):
-            return callback(self, *args, **kwargs)
-        return custom_callback
-
-
-class BotMixin(commands.Bot, metaclass=BotMeta):
     initialize = True
-    MODE = os.getenv('MODE')
-    FILES = {BOTSETFILE: "botsets", LASTWRDFILE: "lastwrds", SETFILE: "sets", WARNFILE: "warns", STRFILE: "strs", TAGFILE: "tags", RANKFILE: "ranks"}
+    MODE = os.getenv("MODE")
+    FILES = {
+        BOTSETFILE: "botsets",
+        LASTWRDFILE: "lastwrds",
+        SETFILE: "sets",
+        WARNFILE: "warns",
+        STRFILE: "strs",
+        TAGFILE: "tags",
+        RANKFILE: "ranks",
+    }
     db = {}
-    tls = tools.dt.Tools
+    tls = Tools
+    netLogger: NetLog
+    chatting: None
 
-    def __init__(self):
-        super().__init__(**self.__inline_kwargs__)
-        self.remove_command('help')
-        self._inject()
+    def __init__(self, *args, **kwargs):
+        logger.debug("Building bot...")
+        super().__init__(*args, **kwargs)
+        if kwargs.get("testing", 1):
+            logger.info("Loading Extensions...")
+            for ext in exts:
+                print(end=f" >> \tLoading {ext}...\r")
+                try:
+                    self.load_extension(ext)
+                    logger.hint(
+                        style.green2 + f"Loaded: {ext}" + style.reset + "   "
+                    )
+                except commands.errors.ExtensionAlreadyLoaded:
+                    return logger.hint(
+                        "Loaded tasks already, continue execution."
+                    )
+                except Exception as err:
+                    logger.error(
+                        f"FAILED: {ext}{style.grey} - {style.yellow}"
+                        + traceback.format_exception_only(err.__class__, err)[
+                            0
+                        ]
+                    )
+                    logger.debug("", exc_info=1)
 
-    def _inject(self):
-        for command in self.__inline_commands__:
-            self.add_command(command)
+    async def __aenter__(self):
+        """Basically `async with bot:`."""
+        logger.info("Starting tasks")
+        self.fsyncs.start()
+        self.netLogger = NetLog(self)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        with contextlib.suppress(BaseException):
+            logger.info("Cleaning up")
+            for file, name in self.FILES.items():
+                if file.endswith(".json"):
+                    db_new = json.load(open(file, "r"))
+                    self.db[name].update(db_new)
+                    json.dump(self.db[name], open(file, "w"))
+                if file.endswith(".db"):
+                    await self.db[name].close()
+
+    @classmethod
+    def new(cls):
+        return cls(
+            command_prefix=get_prefix,
+            description="an awesome open source discord bot coded in python",
+            owner_id=653086042752286730,
+            case_insensitive=True,
+            intents=discord.Intents.all(),
+        )
 
     async def fsync(self, file, name):
         """Sync configs/db to file."""
         if self.initialize:
             if file.endswith(".json"):
-                self.db[name] = json.load(open(file, 'r'))
+                self.db[name] = json.load(open(file, "r"))
             if file.endswith(".db"):
                 self.db[name] = await aiosqlite.connect(file)
             return
         if file.endswith(".json"):
-            db_new = json.load(open(file, 'r'))
+            db_new = json.load(open(file, "r"))
             db_new.update(self.db[name])
             self.db[name] = db_new
-            json.dump(self.db[name], open(file, 'w'))
+            json.dump(self.db[name], open(file, "w"))
         if file.endswith(".db"):
             await self.db[name].commit()
 
@@ -95,29 +146,43 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             to_do_coro.append(self.fsync(file, name))
         await asyncio.gather(*to_do_coro)
 
-    def get_command(self, name_s) -> tools.dt.CmdRes:  # allow shorterned commands (SAP)
-        if ' ' not in name_s:
-            return tools.get_cmd(name_s, tools.dt.CmdDict(self.all_commands))
+    # allow shorterned commands (SAP)
+    async def get_command(self, name_s, i: discord.Message = None):
+        if " " not in name_s:
+            return await tools.get_cmd_i(
+                self, name_s, tools.HashableDict(self.all_commands), i
+            )
 
         names = name_s.split()
         if not names:
             return None
-        obj = tools.get_cmd(names[0], tools.dt.CmdDict(self.all_commands))
-        if not isinstance(obj.cmd, commands.GroupMixin):
-            return obj
+        cmd = await tools.get_cmd_i(
+            self, names[0], tools.HashableDict(self.all_commands), i
+        )
+        if not isinstance(cmd, commands.GroupMixin):
+            return cmd
 
         for name in names[1:]:
             new = None
             try:
-                new = tools.get_cmd(name, tools.dt.CmdDict(obj.cmd.all_commands))
+                new = await tools.get_cmd_i(
+                    self, name, tools.HashableDict(cmd.all_commands), i
+                )
             except AttributeError:
-                return obj
+                return cmd
             if new is None:
-                return obj
-            obj = new
-        return obj
+                return cmd
+            cmd = new
+        return cmd
 
-    async def get_context(self, message: discord.Message, *, cls=tools.dt.Context, cmd=None):
+    async def get_context(
+        self,
+        message: discord.Message,
+        *,
+        cls=Context,
+        cmd=None,
+        interactive: bool = False,
+    ):
         view = commands.view.StringView(message.content)
         ctx = cls(prefix=None, view=view, bot=self, message=message)
 
@@ -131,121 +196,47 @@ class BotMixin(commands.Bot, metaclass=BotMeta):
             if not view.skip_string(prefix):
                 return ctx
         else:
-            # if the context class' __init__ consumes something from the view this
-            # will be wrong.  That seems unreasonable though.
             if message.content.startswith(tuple(prefix)):
                 invoked_prefix = discord.utils.find(view.skip_string, prefix)
             else:
                 return ctx
 
-        # invoker = self.get_command(view.get_word())
-        # if invoker is not None:
-            # invoker = invoker.qualified_name
-        invoker = view.get_word()
+        invoker = await self.get_command(
+            view.get_word(), i=message if interactive else None
+        )
+        ctx.command = invoker
+        if invoker is not None:
+            invoker = invoker.qualified_name
         ctx.invoked_with = invoker
         ctx.prefix = invoked_prefix
-        # ctx.command = self.get_command(message.content[len(ctx.prefix):], last_gud=True)
-        print(self.get_command(invoker))
-        ctx.command = cmd or self.get_command(invoker).cmd
         return ctx
 
+    async def on_disconnect(self):
+        logger.hint("disconnected")
+    
+    async def on_resumed(self):
+        logger.hint("session resumed")
 
-class Bot(BotMixin, command_prefix=get_prefix, description="an awesome open source discord bot coded in python", owner_id=653086042752286730, case_insensitive=True, intents=discord.Intents.all()):
-    """
-    Class for Merlin Bot client.
-
-    subset of commands.Bot
-    Commands included.
-    """
-    netLogger: Log
-    chatting: None
-
-    async def __aenter__(self):
-        """Basically `async with bot:`."""
-        root_logger.info("Starting tasks")
-        self.fsyncs.start()
-        self.netLogger = Log(self)
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        with contextlib.suppress(BaseException):
-            print("Merlin is cleaning up...")
-            for file, name in self.FILES.items():
-                if file.endswith(".json"):
-                    db_new = json.load(open(file, 'r'))
-                    self.db[name].update(db_new)
-                    json.dump(self.db[name], open(file, 'w'))
-                if file.endswith(".db"):
-                    asyncio.get_event_loop().create_task(self.db[name].close())
-        self.chatting.stopChatTh()
+    async def on_connect(self):
+        """Connected to Discord."""
+        logger.info(
+            f"Logged in as {style.cyan}{self.user.name}{style.reset}"
+            f" - {style.italic}{self.user.id}{style.reset}"
+            f" in {style.magenta}{self.MODE} mode"
+        )
+        self.initialize = False
+        logger.info(style.bold + "Ready!")
 
     async def on_ready(self):
-        """Bot is (back) online."""
-        root_logger.info(f'Logged in as {style.cyan}{self.user.name}{style.reset} - {style.italic}{self.user.id}{style.reset} in {style.magenta}{self.MODE} mode')
-        self.initialize = False
-        root_logger.info('Loading Extensions...')
-        for extension in exts:
-            print(end=f' >> \tLoading {extension}...\r')
-            try:
-                self.load_extension(extension)
-                root_logger.hint(style.green2 + f"Loaded: {extension}" + style.reset + "   ")
-            except commands.errors.ExtensionAlreadyLoaded:
-                return root_logger.hint("Loaded tasks already, continue execution.")
-            except Exception as err:
-                root_logger.error(f"FAILED: {extension}{style.grey} - {style.yellow}{traceback.format_exception_only(err.__class__, err)[0]}")
-                root_logger.debug('Stack: ', exc_info=True)
-        root_logger.hint('Telling guilds...')
-        if not self.MODE or self.MODE == 'NORMAL':
-            await self.change_presence(status=discord.Status.online, activity=discord.Game(name=random.choice(STATUSES)))
-            await self.netLogger('Logged in!')
-        elif self.MODE == 'DEBUG':
-            await self.change_presence(status=discord.Status.idle)
-            await self.netLogger('RUNNING IN **DEBUG** MODE!')
-        elif self.MODE == 'FIX':
-            await self.change_presence(status=discord.Status.dnd)
-            await self.netLogger('*RUNNING IN EMERGENCY **FIX** MODE!')
-        root_logger.info(style.bold + "Ready!")
-        return 0
+        """Bot is ready."""
+        self.netLogger("I'm ready!", noawait=True)
 
-    @commands.command(name='eval', help='it is eval', hidden=True)
-    @commands.is_owner()
-    async def _eval(self, ctx, *, code='"bruh wat to eval"'):
-        try:
-            bot = ctx.bot
-            await ctx.send(eval(code))
-            await ctx.message.add_reaction('✅')
-        except Exception:
-            await asyncio.gather(
-                ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549)),
-                ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
-            )
-
-    @commands.command(name='exec', help='Execute python', hidden=True)
-    @commands.is_owner()
-    async def _exec(self, ctx, *, code='return "???????"'):
-        try:
-            bot = ctx.bot
-            exec(code, globals(), locals())
-            await ctx.message.add_reaction("✅")
-        except Exception:
-            await asyncio.gather(
-                ctx.message.add_reaction(ctx.bot.get_emoji(740034702743830549)),
-                ctx.send(':x: uh oh. there\'s an error in your code:\n```\n' + traceback.format_exc() + '\n```')
-            )
-
-    @commands.command(name='reload', help='reload a cog', hidden=True)
-    @commands.is_owner()
-    async def _reload(self, ctx, module: str):
-        ctx.bot.reload_extension(module)
-        await ctx.message.add_reaction("✅")
-
-    @commands.command(name='unload', help='unload a cog', hidden=True)
-    @commands.is_owner()
-    async def _unload(self, ctx, module: str):
-        ctx.bot.unload_extension(module)
-        await ctx.message.add_reaction("✅")
-
-    @commands.command(name='load', help='load a cog', hidden=True)
-    @commands.is_owner()
-    async def _load(self, ctx, module: str):
-        ctx.bot.load_extension(module)
-        await ctx.message.add_reaction("✅")
+    async def on_error(self, event, *args, **kwargs):
+        logger.fatal(
+            f"Ignoring exception in event {event}:",
+            # f"{style.red}{self.tls.get_exc(sys.exc_info()[1])}",
+            exc_info=1,
+        )
+        if self.MODE != OnlineMode.FIX:
+            logger.hint("Running in FIX MODE due to previous fatal exception")
+            self.MODE = OnlineMode.FIX

@@ -4,7 +4,7 @@ import discord
 from discord import flags
 from discord.ext import commands
 import merlin
-from ext import cmds
+from modules import cmds
 
 
 class Core(commands.Cog):

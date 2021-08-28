@@ -3,6 +3,10 @@
 
 
 ## [Unreleased]
+### Changed
+- bot subclassing
+- command handling system
+- startup optimisation
 ### Fixed
 - non-sodoers can change settings
 

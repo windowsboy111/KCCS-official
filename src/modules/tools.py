@@ -1,12 +1,21 @@
 """
 This module contains tools that are neither related to discord.py nor Merlin
 """
-import sys
 import asyncio
+import contextlib
 import functools
+import json
+import sys
 import traceback
+import typing
+import discord
+import aiosqlite
+from typing import Union
+
+from discord.ext.commands import Command
+from internal.classes import HashableDict, CmdRes, HashableList
 from modules import proc
-from modules import datatypes as dt
+
 
 class AsyncPool:
     def __init__(self, queue: asyncio.Queue = None):
@@ -15,6 +24,7 @@ class AsyncPool:
 
     def make_worker(self, timeout: int = 10):
         """decorate functions that represents workers"""
+
         def inner(fn):
             async def wrap_wrk():
                 slept = 0
@@ -27,17 +37,24 @@ class AsyncPool:
                             await asyncio.sleep(0.1)
                             continue
                         try:
-                            await fn(await self.queue.get())  # execute original function
+                            await fn(
+                                await self.queue.get()
+                            )  # execute original function
                         except asyncio.CancelledError:  # task cancelled
                             return
                         except Exception:  # print exc and continue
-                            print(f"Ignoring exception in worker:\n{traceback.format_exc()}", file=sys.stderr)
+                            print(
+                                f"Ignoring exception in worker:\n{traceback.format_exc()}",
+                                file=sys.stderr,
+                            )
                         finally:  # mark as done
                             self.queue.task_done()
                             slept = 0
                 except asyncio.CancelledError:
                     return
+
             return wrap_wrk
+
         return inner
 
     async def start(self, worker, num_workers: int = 5):
@@ -83,6 +100,7 @@ class AsyncPool:
         await self.start(worker, num_workers)
         await self.join(timeout)
 
+
 def msgsep(msg: str):
     results = []
     result = ""
@@ -99,6 +117,42 @@ def msgsep(msg: str):
 
 
 @functools.lru_cache()
-def get_cmd(name: str, cmdlist: dt.CmdDict) -> dt.CmdRes:
-    outcmdname, outcandidates = proc.get_cmd(name, set(cmdlist.keys()))
-    return dt.CmdRes(cmdlist[outcmdname] if outcmdname else None, name, outcandidates if any(outcandidates) else None)
+def get_cmd(name: str, cmdlist: HashableDict) -> HashableList:
+    return proc.get_cmd(name, list(set(cmdlist.keys())))
+
+
+async def get_cmd_i(bot, name: str, cmdlist: HashableDict, message=None) -> Union[Command, None]:
+    ret = get_cmd(name, cmdlist) or None
+    if not message:  # not in interact mode
+        return cmdlist[ans] if (ans := ret[0]) == name else None
+    if not ret:
+        return None
+    if len(ret) == 1:
+        return cmdlist[ret[0]]
+    out: str = "```md\n## Command Candidates ##\n"
+    for i, name in enumerate(ret, 1):
+        out += f"{0 if i == 10 else i}. {name}\n"
+        if i == 10:
+            break
+    out += "**Send your numerical selection, or other messages to cancel.**```"
+    msg_t = bot.loop.create_task(message.reply(out))
+    cmd = None
+    with contextlib.suppress(Exception):
+        try:
+            num_r = await bot.wait_for(
+                "message",
+                check=lambda m: m.author == message.author
+                and m.channel == message.channel,
+                timeout=30,
+            )
+        except TimeoutError:
+            await (await msg_t).delete()
+            return
+        bot.loop.create_task(num_r.delete())
+        cmd_name = ret[9 if (n := int(num_r.content) - 1) == -1 else n]
+        cmd = cmdlist[cmd_name]
+    msg = await msg_t
+    bot.loop.create_task(msg.delete())
+    if not cmd:
+        await message.add_reaction('🔍')
+    return cmd

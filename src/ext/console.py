@@ -52,7 +52,6 @@ async def halt(bot: Bot, *args):
         await asyncio.gather(bot.netLogger("Bot will shutdown in 10 secs!"),asyncio.sleep(10))
         bot.chatting.stopChatTh()
     await bot.netLogger("Logging out...")
-    print("Bye bye.")
     await bot.close()
     return -1
 

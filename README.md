@@ -1,19 +1,30 @@
-# Merlin Python branch
+# Merlin
 ### discord bot coded with discord.py
-[![Upload Python Package](https://github.com/windowsboy111/merlin-py/workflows/Upload%20Python%20Package/badge.svg)](https://pypi.org/project/Merlin-bot) [![Run on Repl.it](https://repl.it/badge/github/windowsboy111/merlin-py)](https://repl.it/github/windowsboy111/merlin-py)  
-==info/warning/disclamer==
-
-This bot is coded for the discord server [KCCS Official](https://discord.io/kccs) originally.  
 
 Invite using [this link](https://discord.com/api/oauth2/authorize?client_id=690839099648638977&permissions=8&scope=bot).
 
----
-
-if you are viewing the code with vscode, please set the working directory for linters to the root directory of this repository.
-
-bot hosted on [repl.it](https://repl.it/@windowsboy111/merlin-py)
-
 LICENSE: MIT
 
-package avaliable on [pypi](https://pypi.org/project/merlin-bot)
+---
 
+## Setup
+1. Optional: Make a venv and activate it
+2. Execute `pip install -r requirements.txt`
+3. Execute `inv build`
+    - C++ compiler by default is g++
+    - feel free to change stuff in `tasks.py`
+    - you might need to build `extern/pybind11/`, run `setup.py install` there
+4. Edit `src/special.py`, make sure
+    - coroutine `pre_on_message(message: discord.Message)`
+    - coroutine `post_on_message(message: discord.Message)`
+
+    are both defined
+5. Edit `src/.env` according to `src/.example.env`
+    - `DISCORD_TOKEN` should be apparently the bot token
+    - `MODE` is either `NORMAL`, `DEBUG` or `FIX`
+    - quotes are not needed
+    - you may use `#` to create comments
+
+## Start
+- make sure the current directory is `src/`
+- execute `python bot.py`

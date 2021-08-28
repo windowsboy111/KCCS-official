@@ -9,7 +9,7 @@ This is neither a discord.py cog or a discord.py extension. It is only a normal 
 """
 from mcstatus import MinecraftServer
 import discord, csv
-from ext.logcfg import get_logger
+from modules.logcfg import get_logger
 from pyTableMaker import ModernTable
 
 

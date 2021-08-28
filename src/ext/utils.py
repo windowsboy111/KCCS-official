@@ -10,15 +10,14 @@ import discord
 from discord.ext import commands
 from modules import minecraft
 from modules import base_encoding, tools
-from ext.const import STRFILE, chk_sudo
+from modules.const import STRFILE, chk_sudo
 import json
-from ext import excepts
+from modules import excepts
 import aiosqlite
 import duckduckgo
 import pyTableMaker
-from ext.logcfg import gLogr
+from modules.logcfg import gLogr
 stringTable = json.load(open(STRFILE, 'r'))
-BOT: commands.Bot
 
 class PollingCTL:
     @staticmethod
@@ -189,7 +188,7 @@ class Utils(commands.Cog):
 
         # get the message
         try: poll_message = await discord.TextChannel.fetch_message(ctx.message.channel, int(pollID))
-        except Exception:
+        except ValueError:
             try:
                 poll_message = await discord.TextChannel.fetch_message(ctx.message.channel, base_encoding.IntEncoder.decode_base64(pollID))
             except Exception:
@@ -310,8 +309,18 @@ class Utils(commands.Cog):
 
     @mc.command(name='crash')
     async def crash(self, ctx, *, args=None):
-        f = open("samples/mc_crash.txt", "r", encoding='utf-8')
-        await ctx.send(f.read())
+        await ctx.send("""```css
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                                    GAME CRASH                                    ║
+║                                                                                  ║
+║    An unexpected issue occurred and the game has crashed. We're sorry for the    ║
+║                                  inconvenience.                                  ║
+║                                   ╔═══════════╗                                  ║
+║                                   ║   CLOSE   ║                                  ║
+║                                   ╚═══════════╝                                  ║
+║                                                                                  ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+```""")
 
     @commands.command(name='invite', help='get server invite link')
     @commands.guild_only()
@@ -404,7 +413,7 @@ class Utils(commands.Cog):
     
     @commands.group(name="tutorial", aliases=['tut'])
     async def tutorial(self, ctx):
-        """how to use merlin?"""
+        """How to use merlin?????"""
         if ctx.invoked_subcommand is None:
             await ctx.send("This command helps you to understand how to use this bot correctly. get the usage of this command with `/help tut`.")
             return 0
