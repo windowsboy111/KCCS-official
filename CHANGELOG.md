@@ -3,10 +3,15 @@
 
 
 ## [Unreleased]
+### Added
+- unit test system
 ### Changed
 - bot subclassing
 - command handling system
 - startup optimisation
+- fs reorganisation
+### Removed
+- media command
 ### Fixed
 - non-sodoers can change settings
 

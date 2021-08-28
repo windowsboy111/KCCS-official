@@ -89,39 +89,6 @@ class Fun(commands.Cog):
             return
         await ctx.send(f'OK BOOMER {person}')
 
-    @commands.group(name='media', help='/media [sub-commands]', aliases=['sent'])
-    async def media(self, ctx):
-        if ctx.invoked_subcommand is None:
-            await ctx.send("2 bed idk wat u r toking 'bout, but wut?")
-            return
-
-    @media.command(name='no', help='/media no, will give you file related to "no"', aliases=['nope', 'nah', 'np'])
-    async def no(self, ctx, *, args=''):
-        async with ctx.typing():
-            global lolpwd
-            rtrn = random.choice([
-                discord.File(f"{lolpwd}Mumbo Jumbo - No No No.mp3"),
-                discord.File(f"{lolpwd}Keralis and Xisuma - No No No.mp3")])
-            await ctx.send(file=rtrn)
-
-    @media.command(name='fool', help='/media stupid, will give you file related to "stupid"', aliases=['stupid', 'foolish', 'stupidity'])
-    async def fool(self, ctx, *, args=''):
-        global lolpwd
-        async with ctx.typing():
-            await ctx.send(file=discord.File(f"{lolpwd}Mumbo Jumbo - Stupid.mp3"))
-
-    @media.command(name='discord', help='/media discord, will give you file related to "discord"', aliases=['dc'])
-    async def disc(self, ctx, *, args=""):
-        global lolpwd
-        async with ctx.typing():
-            await ctx.send(file=discord.File(f"{lolpwd}Discord_3WIP.ogg"))
-
-    @media.command(name='afk', help='/media afk, will give you file related to "afk"', aliases=['mumboafk'])
-    async def afk(self, ctx, *, args=""):
-        global lolpwd
-        async with ctx.typing():
-            await ctx.send(file=discord.File(f"{lolpwd}Grian - Mumbo AFK.mp3"))
-
     @commands.command(name='say', help='the bot is talking!')
     async def say(self, ctx, *, args=""):
         if args == '':
