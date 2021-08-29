@@ -1,2 +1,2 @@
 black
-huputs==0.1.0
+huputs==0.1.1

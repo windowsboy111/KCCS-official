@@ -50,10 +50,8 @@ class Bot(commands.Bot):
     Class for Merlin Bot client.
 
     subset of commands.Bot
-    Commands included.
     """
 
-    initialize = True
     MODE = os.getenv("MODE")
     FILES = {
         BOTSETFILE: "botsets",
@@ -213,7 +211,7 @@ class Bot(commands.Bot):
 
     async def on_disconnect(self):
         logger.hint("disconnected")
-    
+
     async def on_resumed(self):
         logger.hint("session resumed")
 
@@ -225,7 +223,6 @@ class Bot(commands.Bot):
             f" in {style.magenta}{self.MODE} mode"
         )
         self.initialize = False
-        logger.info(style.bold + "Ready!")
 
     async def on_ready(self):
         """Bot is ready."""
