@@ -1,6 +1,8 @@
 # Merlin
 ### discord bot coded with discord.py
 
+Since discord.py is discontinued, I have decided to move onto guilded.py. Yes, check out the newer branches. Thank you for all your support.
+
 Invite using [this link](https://discord.com/api/oauth2/authorize?client_id=690839099648638977&permissions=8&scope=bot).
 
 LICENSE: MIT
