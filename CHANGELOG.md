@@ -3,8 +3,6 @@
 
 
 ## [Unreleased]
-### Added
-- unit test system
 ### Changed
 - bot subclassing
 - command handling system
