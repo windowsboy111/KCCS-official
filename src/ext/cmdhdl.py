@@ -57,7 +57,7 @@ class CmdHdl(commands.Cog):
         log and invoke it.
         """
         # just put a whatever 0 there as the default value, never gonna match
-        if msg.channel.id == self.bot.db["sets"][f"g{msg.guild.id}"].get(
+        if msg.channel.id == self.bot.db["sets"].get(f"g{msg.guild.id}", {}).get(
             "chatChannel", 0
         ):
             return
