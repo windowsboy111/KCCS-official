@@ -1,4 +1,4 @@
-discord.py
+discord
 pyTableMaker==2.0.0
 psutil
 aiosqlite
@@ -10,3 +10,7 @@ python-config
 jishaku
 duckduckgo3
 mcstatus
+
+
+# guilded.py is a bit broken I need to add its deps
+websockets

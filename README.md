@@ -1,8 +1,8 @@
 # Merlin
 ### discord bot coded with discord.py
 
-Since discord.py is discontinued, I have decided to move onto guilded.py. Yes, check out the newer branches. Thank you for all your support.
-
+(discord.py is unsupported, will be ported to guilded.py)
+Discord: (to be changed)
 Invite using [this link](https://discord.com/api/oauth2/authorize?client_id=690839099648638977&permissions=8&scope=bot).
 
 LICENSE: MIT
@@ -22,7 +22,7 @@ LICENSE: MIT
 
     are both defined
 5. Edit `src/.env` according to `src/.example.env`
-    - `DISCORD_TOKEN` should be apparently the bot token
+    - `MERLIN_EMAIL` and `MERLIN_PASSWORD` should be apparent
     - `MODE` is either `NORMAL`, `DEBUG` or `FIX`
     - quotes are not needed
     - you may use `#` to create comments

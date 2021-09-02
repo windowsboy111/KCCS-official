@@ -4,7 +4,6 @@ Startup script.
 
 Copyright windowsboy111 2020-present MIT license
 https://github.com/windowsboy111/merlin
-discord.py -- the main module. In fact the main scr.
 """
 import os
 import sys

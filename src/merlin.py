@@ -10,9 +10,8 @@ import contextlib
 
 # additional libs
 import discord
+from discord.ext import commands, tasks
 import aiosqlite
-from discord.ext import tasks
-from discord.ext import commands
 
 # python external files
 from modules.logcfg import gLogr
@@ -49,9 +48,9 @@ class Bot(commands.Bot):
     """
     Class for Merlin Bot client.
 
-    subset of commands.Bot
+    subset of discord.Bot
     """
-
+    initialize = True
     MODE = os.getenv("MODE")
     FILES = {
         BOTSETFILE: "botsets",
@@ -216,7 +215,7 @@ class Bot(commands.Bot):
         logger.hint("session resumed")
 
     async def on_connect(self):
-        """Connected to Discord."""
+        """Connected to Guilded."""
         logger.info(
             f"Logged in as {style.cyan}{self.user.name}{style.reset}"
             f" - {style.italic}{self.user.id}{style.reset}"
