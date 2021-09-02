@@ -15,6 +15,7 @@ LICENSE: MIT
 3. Execute `inv build`
     - C++ compiler by default is g++
     - feel free to change stuff in `tasks.py`
+    - if `extern/pybind11/` is empty, run `git submodule update --init`
     - you might need to build `extern/pybind11/`, run `setup.py install` there
 4. Edit `src/special.py`, make sure
     - coroutine `pre_on_message(message: discord.Message)`

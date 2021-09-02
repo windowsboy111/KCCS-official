@@ -1,5 +1,5 @@
 discord
-pyTableMaker==2.0.0
+pyTableMaker
 psutil
 aiosqlite
 python-dotenv
